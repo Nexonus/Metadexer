@@ -10,7 +10,7 @@ import javax.swing.border.EmptyBorder;
 
 public class GUI extends JFrame implements ActionListener {
 	private JPanel contentPane;
-	private JFileChooser chooseFile = new JFileChooser(new File("C:\\Documents"));
+	private JFileChooser chooseFile = new JFileChooser(new File("..\\samples"));
 	private JTextField tbInputPath = new JTextField("",35);
 	private String folderPath = new String("");
 	

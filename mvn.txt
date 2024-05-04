@@ -1,0 +1,1 @@
+mvn archetype:generate "-DgroupId=pl.wit.projekt" "-DartifactId=projekt-metadexer" "-DarchetypeArtifactId=maven-archetype-quickstart" "-DarchetypeVersion=1.4" "-DinteractiveMode=false"

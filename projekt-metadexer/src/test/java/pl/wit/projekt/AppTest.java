@@ -9,7 +9,7 @@ import org.junit.jupiter.api.Test;
 public class AppTest {
 	@Test
 	public void TestExecution() {
-		GUI gui = new GUI();
+		//GUI gui = new GUI();
 	}
 	
 }

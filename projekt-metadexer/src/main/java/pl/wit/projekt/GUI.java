@@ -1,12 +1,20 @@
 package pl.wit.projekt;
 
+/***
+ * @author Jan Konarski
+ * GUI - Metadexer
+ */
+
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
+import java.io.IOException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
+
+import org.apache.commons.imaging.ImagingException;
 
 public class GUI extends JFrame implements ActionListener {
 	private JPanel contentPane;
@@ -14,11 +22,12 @@ public class GUI extends JFrame implements ActionListener {
 	private JTextField tbInputPath = new JTextField("",35);
 	private String folderPath = new String("");
 	
-	public GUI() {
+	/// Create interface
+	public GUI() throws ImagingException, IOException {
 		super("Metadexer");
 				
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		setBounds(100,100,600,300);
+		setBounds(100,100,650,300);
 		contentPane = new JPanel();
 		contentPane.setBorder(new EmptyBorder(10,10,10,10));
 		contentPane.setLayout(new FlowLayout(FlowLayout.CENTER,5,5));
@@ -28,13 +37,25 @@ public class GUI extends JFrame implements ActionListener {
 		JButton btnChooseInputFolder = new JButton("Open");
 		btnChooseInputFolder.addActionListener(this);
 		
+		JButton btnStart = new JButton("Start");
+		Metadata metadata = new Metadata();
+		btnStart.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent actionEvent) {
+				try {
+					metadata.DiscoverImages("..\\samples");
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+		});
+		
 		JPanel filePane = new JPanel();
-		JPanel testPane = new JPanel();
+		JPanel startPane = new JPanel();
 		
 		contentPane.setBackground(Color.WHITE);
 		filePane.setBackground(Color.LIGHT_GRAY);
 		
-		testPane.setBackground(Color.RED);
+		startPane.setBackground(Color.RED);
 		
 		JLabel lbInputLabel = new JLabel();
 		lbInputLabel.setText("Path to input images folder");
@@ -47,8 +68,10 @@ public class GUI extends JFrame implements ActionListener {
 		filePane.add(tbInputPath);
 		filePane.add(btnChooseInputFolder);
 		
+		startPane.add(btnStart);
+		
 		contentPane.add(filePane);
-		contentPane.add(testPane);
+		contentPane.add(startPane);
 		
 		
 		setVisible(true);	/// By default a window is hidden!

@@ -6,6 +6,10 @@ import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+/*
+ * JUnit tests
+ */
+
 public class AppTest {
 	@Test
 	public void TestExecution() {

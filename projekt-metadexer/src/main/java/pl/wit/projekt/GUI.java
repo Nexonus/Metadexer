@@ -28,6 +28,7 @@ public class GUI extends JFrame implements ActionListener {
 	/// Create TextFields
 	private JTextField tbInputPath = new JTextField("",60);
 	private JTextField tbOutputPath = new JTextField("",60);
+	private JTextField tbThreadCount = new JTextField("");
 	
 	/// Create fileChoosers
 	private JFileChooser fcInputChooser = new JFileChooser(new File("..\\"));	// default start directory
@@ -40,16 +41,19 @@ public class GUI extends JFrame implements ActionListener {
 	// Create Panels
 	private JPanel pnContentPane = new JPanel(new BorderLayout());
 	private	JPanel pnFolderPane = new JPanel(new BorderLayout());
-	private JPanel pnInputPane = new JPanel(new GridLayout(1,2));
+	private JPanel pnInputPane = new JPanel(new GridLayout(1,3));
 	private JPanel pnOutputPane = new JPanel(new GridLayout(1,2));
 	private JPanel pnStartPane = new JPanel(new BorderLayout());
-	private JPanel pnStartPaneSplit = new JPanel(new GridLayout(1,2));
+	private JPanel pnStartPaneSplit = new JPanel(new GridLayout(1,3));
+	
+	private JPanel pnThreadNumberPane = new JPanel(new GridLayout(1,2));
 	
 	/// Output log components
 	private JTextPane tpScrollPane = new JTextPane();
 	private JScrollPane spScrollPane = new JScrollPane(tpScrollPane);
 	
 	private JLabel lbOutputLogLabel = new JLabel("Output log:");
+	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
 	/***
 	 * 
 	 * @throws ImagingException
@@ -58,6 +62,7 @@ public class GUI extends JFrame implements ActionListener {
 	public GUI() throws ImagingException, IOException {
 		super("METADEXER");
 
+		lbThreadUsageLabel.setHorizontalAlignment(JLabel.CENTER);
 		
 		tpScrollPane.setBackground(Color.BLACK);
 		spScrollPane.setBorder(new EmptyBorder(5,5,5,5));
@@ -77,8 +82,8 @@ public class GUI extends JFrame implements ActionListener {
 				
 		/// Set debug colors for each panel
 		pnContentPane.setBackground(Color.WHITE); 
-		pnFolderPane.setBackground(Color.LIGHT_GRAY); 
-		pnStartPane.setBackground(Color.LIGHT_GRAY);
+		pnFolderPane.setBackground(Color.WHITE); 
+		pnStartPane.setBackground(Color.WHITE);
 		pnStartPaneSplit.setBackground(Color.WHITE);
 		
 		/// Add ActionListeners to buttons
@@ -99,9 +104,14 @@ public class GUI extends JFrame implements ActionListener {
 		pnOutputPane.add(btnOutputFolder,BorderLayout.CENTER);
 		pnFolderPane.add(pnOutputPane,BorderLayout.SOUTH);
 		
+		pnThreadNumberPane.add(lbThreadUsageLabel);
+		pnThreadNumberPane.add(tbThreadCount);
+		
 		// Add panels to the ContentPane, mostly visual stuff
 		pnStartPaneSplit.add(lbOutputLogLabel,BorderLayout.WEST); // borderlayout.west property non-necessary for any GridLayout if set as so
+		pnStartPaneSplit.add(pnThreadNumberPane);
 		pnStartPaneSplit.add(btnStart,BorderLayout.EAST);		  // mandatory for BorderLayout
+		
 		
 		pnStartPane.add(pnStartPaneSplit,BorderLayout.NORTH);
 		pnContentPane.add(pnStartPane,BorderLayout.CENTER);

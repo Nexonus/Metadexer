@@ -28,6 +28,15 @@ import org.apache.commons.io.FilenameUtils;
 
 public class Metadata {
 	
+	/*
+	 * TO DO:
+	 * - Create private members for OutputDirectory
+	 * - Create private members for OutputImage
+	 * - Try to remove unnecessary variables
+	 * 
+	 * - After that's done, create a function to copy a file with getImageDestination(), getFolderDestination() getters.
+	 * - Perform a loop to copy and paste files while Main Thread is active AND there is no concurrent thread currently active.
+	 */
 	private String strOutputDirectoryPath=null;
 	private String strOutputImagePath=null;
 	private List<String> indexedImageList = new ArrayList<String>();

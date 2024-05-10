@@ -9,6 +9,8 @@ package pl.wit.projekt;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,8 +25,11 @@ import javax.swing.text.StyleContext;
 
 import org.apache.commons.imaging.ImagingException;
 
-public class GUI extends JFrame implements ActionListener {
+public class GUI extends JFrame implements ActionListener, WindowListener{
 	
+	
+	private static final long serialVersionUID = 1L;
+
 	/// Create TextFields
 	private JTextField tbInputPath = new JTextField("",60);
 	private JTextField tbOutputPath = new JTextField("",60);
@@ -54,11 +59,12 @@ public class GUI extends JFrame implements ActionListener {
 	
 	private JLabel lbOutputLogLabel = new JLabel("Output log:");
 	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
-	/***
-	 * 
-	 * @throws ImagingException
-	 * @throws IOException
-	 */
+	
+	
+	public static void main(String[] args) throws ImagingException, IOException {
+		new GUI();
+	}
+	
 	public GUI() throws ImagingException, IOException {
 		super("METADEXER");
 
@@ -70,6 +76,9 @@ public class GUI extends JFrame implements ActionListener {
 		/// Create a new 750 x 450 px window for GUI, default pane is pnContentPane:
 		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		setBounds(100,100,750,450);
+		
+		// Create a Window Listener.
+		addWindowListener(this);
 		
 		pnContentPane.setBorder(new EmptyBorder(5,5,5,5));
 		pnStartPane.setBorder(new EmptyBorder(2,2,2,2));
@@ -144,7 +153,7 @@ public class GUI extends JFrame implements ActionListener {
 		if (source == btnInputFolder) {
 
 			result = fcInputChooser.showOpenDialog(this);
-			if (result == fcInputChooser.APPROVE_OPTION) {
+			if (result == JFileChooser.APPROVE_OPTION) {
 				strInputPath = fcInputChooser.getSelectedFile().getAbsolutePath().toString();
 				tbInputPath.setText(strInputPath);
 			}else {
@@ -153,7 +162,7 @@ public class GUI extends JFrame implements ActionListener {
 			}
 		}else if (source == btnOutputFolder) {
 			result = fcOutputChooser.showOpenDialog(this);
-			if (result == fcOutputChooser.APPROVE_OPTION) {
+			if (result == JFileChooser.APPROVE_OPTION) {
 				strOutputPath = fcOutputChooser.getSelectedFile().getAbsolutePath();
 				tbOutputPath.setText(strOutputPath);
 			}else {
@@ -179,19 +188,30 @@ public class GUI extends JFrame implements ActionListener {
 				appendToPane(tpScrollPane,"[ERROR] - Invalid output path: ".concat(strOutputPath).concat("\n"), Color.RED);
 			}
 			if (inputValid && outputValid) {
+				
 				Metadata metadata = new Metadata();
-				metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
+				metadata.setOutputRootPath(strOutputPath.concat("\\"));
+				metadata.setThreadCount(Integer.parseInt(tbThreadCount.getText()));
+				
+				//metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
 				try {
 					metadata.DiscoverImages(strInputPath);
 					
-					if (metadata.getIndexedImageList().size()>0) {
+					
+					if (metadata.getIndexedImageSet().size()>0) {
 						appendToPane(tpScrollPane,"[SUCCESS] - Copied Files: ".concat("\n").concat("\n"), Color.GREEN);
-					}else {
+					}
+					/*
+					else {
 						appendToPane(tpScrollPane,"[WARNING] - No unique files to copy found.".concat("\n").concat("\n"), Color.ORANGE);
 					}
-					for (String imageName : metadata.getIndexedImageList()) {
-						appendToPane(tpScrollPane,imageName.concat("\n"), Color.WHITE);
+					*/
+					/// AppendToPane takes [WAY TOO MUCH] time... Maybe we can use something else or scrap it.
+					for (String imageName : metadata.getIndexedImageSet()) {
+						//appendToPane(tpScrollPane,imageName.concat("\n"), Color.WHITE); // <- This bastard
+						System.out.println(imageName);
 					}
+					
 					
 				} catch (IOException ex) {
 					ex.printStackTrace();
@@ -220,6 +240,44 @@ public class GUI extends JFrame implements ActionListener {
 		tpScrollPane.setCharacterAttributes(as, false);
 		tpScrollPane.replaceSelection(message);
 		tpScrollPane.setEditable(false);
+	}
+	/// Create Overrides for WindowEvents. 
+	
+	@Override
+	public void windowOpened(WindowEvent e) {
+		System.out.println("Main thread has begun...");
+		
+	}
+	@Override
+	public void windowClosed(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void windowClosing(WindowEvent e) {
+		System.out.println("Main thread has ended.");
+		
 	}
 }
 

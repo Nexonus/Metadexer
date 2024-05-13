@@ -13,6 +13,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.security.NoSuchAlgorithmException;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -54,21 +55,34 @@ public class GUI extends JFrame implements ActionListener {
 	
 	private JLabel lbOutputLogLabel = new JLabel("Output log:");
 	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
+	
+	private String outputPathDirectory;
+	private String inputPathDirectory;
+	
+	/**
+	 * 
+	 * @param args
+	 * @throws IOException
+	 */
+	// Initialize GUI window
+	public static void main(String[] args) throws IOException {
+		new GUI();
+	}
 	/***
 	 * 
 	 * @throws ImagingException
 	 * @throws IOException
 	 */
-	public GUI() throws ImagingException, IOException {
+	public GUI() throws IOException {
 		super("METADEXER");
 
-		lbThreadUsageLabel.setHorizontalAlignment(JLabel.CENTER);
+		lbThreadUsageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		
 		tpScrollPane.setBackground(Color.BLACK);
 		spScrollPane.setBorder(new EmptyBorder(5,5,5,5));
 		
 		/// Create a new 750 x 450 px window for GUI, default pane is pnContentPane:
-		setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		setBounds(100,100,750,450);
 		
 		pnContentPane.setBorder(new EmptyBorder(5,5,5,5));
@@ -135,17 +149,18 @@ public class GUI extends JFrame implements ActionListener {
 	 * Action Performed : Check for which button is pressed and read DialogResult to perform an action.
 	 */
 	@Override
-	public void actionPerformed(ActionEvent ae) {
+	public void actionPerformed(ActionEvent ae) { // Refactor this method to reduce its Cognitive Complexity from 29 to the 15 allowed. [+18 locations]
 		Object source = ae.getSource();
 		String strInputPath = tbInputPath.getText();
 		String strOutputPath = tbOutputPath.getText();
+		
 		int result;
 		
 		if (source == btnInputFolder) {
 
 			result = fcInputChooser.showOpenDialog(this);
-			if (result == fcInputChooser.APPROVE_OPTION) {
-				strInputPath = fcInputChooser.getSelectedFile().getAbsolutePath().toString();
+			if (result == JFileChooser.APPROVE_OPTION) {
+				strInputPath = fcInputChooser.getSelectedFile().getAbsolutePath(); // "getAbsolutePath" returns a string, there's no need to call "toString()"
 				tbInputPath.setText(strInputPath);
 			}else {
 				strInputPath = "";
@@ -153,7 +168,7 @@ public class GUI extends JFrame implements ActionListener {
 			}
 		}else if (source == btnOutputFolder) {
 			result = fcOutputChooser.showOpenDialog(this);
-			if (result == fcOutputChooser.APPROVE_OPTION) {
+			if (result == JFileChooser.APPROVE_OPTION) { // Change this instance-reference to a static reference.
 				strOutputPath = fcOutputChooser.getSelectedFile().getAbsolutePath();
 				tbOutputPath.setText(strOutputPath);
 			}else {
@@ -179,22 +194,34 @@ public class GUI extends JFrame implements ActionListener {
 				appendToPane(tpScrollPane,"[ERROR] - Invalid output path: ".concat(strOutputPath).concat("\n"), Color.RED);
 			}
 			if (inputValid && outputValid) {
+				Integer threadCount = Integer.parseInt(tbThreadCount.getText());
+				setOutputPathDirectory(tbOutputPath.getText());
+				setInputPathDirectory(tbInputPath.getText());
 				Metadata metadata = new Metadata();
 				metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
 				try {
-					metadata.DiscoverImages(strInputPath);
-					
-					if (metadata.getIndexedImageList().size()>0) {
+					// Searching method
+					metadata.discoverImages(strInputPath, threadCount);
+					/*
+					if (!Metadata.getIndexedImageList().isEmpty()) {
 						appendToPane(tpScrollPane,"[SUCCESS] - Copied Files: ".concat("\n").concat("\n"), Color.GREEN);
-					}else {
+					}
+					
+					/*else {
 						appendToPane(tpScrollPane,"[WARNING] - No unique files to copy found.".concat("\n").concat("\n"), Color.ORANGE);
 					}
-					for (String imageName : metadata.getIndexedImageList()) {
+					
+					for (String imageName : Metadata.getIndexedImageList()) {
 						appendToPane(tpScrollPane,imageName.concat("\n"), Color.WHITE);
 					}
+					*/
 					
-				} catch (IOException ex) {
-					ex.printStackTrace();
+				} catch (IOException io) {
+					io.printStackTrace();
+				} catch (InterruptedException ie) {
+					ie.printStackTrace();
+				} catch (NoSuchAlgorithmException nsa) {
+					nsa.printStackTrace();
 				}
 			}
 		}
@@ -205,10 +232,14 @@ public class GUI extends JFrame implements ActionListener {
 	 * @return
 	 */
 	public boolean checkValidFolderPath(String path) {
+		return Files.exists(Paths.get(path));
+		
+		/*old version 
 		if (Files.exists(Paths.get(path))) {
 			return true;
 		}
 		return false;
+		*/
 	}
 	private void appendToPane(JTextPane tpScrollPane, String message, Color c) {
 		tpScrollPane.setEditable(true);
@@ -220,6 +251,18 @@ public class GUI extends JFrame implements ActionListener {
 		tpScrollPane.setCharacterAttributes(as, false);
 		tpScrollPane.replaceSelection(message);
 		tpScrollPane.setEditable(false);
+	}
+	public String getOutputPathDirectory() {
+		return outputPathDirectory;
+	}
+	public void setOutputPathDirectory(String outputPathDirectory) {
+		this.outputPathDirectory = outputPathDirectory;
+	}
+	public String getInputPathDirectory() {
+		return inputPathDirectory;
+	}
+	public void setInputPathDirectory(String inputPathDirectory) {
+		this.inputPathDirectory = inputPathDirectory;
 	}
 }
 

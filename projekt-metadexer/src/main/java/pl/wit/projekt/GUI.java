@@ -1,14 +1,15 @@
 package pl.wit.projekt;
 
 /***
- * @author Jan Konarski
- * GUI - Metadexer
+ * @author Jan Konarski - Graphic Interface setup
  * Implementacja interfejsu graficznego programu do indeksowania i sortowania plików JPG na bazie metadanych EXIF
  */
 
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.WindowEvent;
+import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -24,12 +25,14 @@ import javax.swing.text.StyleContext;
 
 import org.apache.commons.imaging.ImagingException;
 
-public class GUI extends JFrame implements ActionListener {
+public class GUI extends JFrame implements ActionListener, WindowListener {
 	
+	private Metadata metadata;
+	private static final long serialVersionUID = -5574138120807033215L;
 	/// Create TextFields
 	private JTextField tbInputPath = new JTextField("",60);
 	private JTextField tbOutputPath = new JTextField("",60);
-	private JTextField tbThreadCount = new JTextField("");
+	private JTextField tbThreadCount = new JTextField("",1);
 	
 	/// Create fileChoosers
 	private JFileChooser fcInputChooser = new JFileChooser(new File("..\\"));	// default start directory
@@ -46,6 +49,7 @@ public class GUI extends JFrame implements ActionListener {
 	private JPanel pnOutputPane = new JPanel(new GridLayout(1,2));
 	private JPanel pnStartPane = new JPanel(new BorderLayout());
 	private JPanel pnStartPaneSplit = new JPanel(new GridLayout(1,3));
+	private JPanel pnProgressBarPane = new JPanel(new GridLayout(2,1));
 	
 	private JPanel pnThreadNumberPane = new JPanel(new GridLayout(1,2));
 	
@@ -55,16 +59,21 @@ public class GUI extends JFrame implements ActionListener {
 	
 	private JLabel lbOutputLogLabel = new JLabel("Output log:");
 	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
+	private JLabel lbProgress = new JLabel("Progress:");
+	
+	private JProgressBar pbProgressBar = new JProgressBar();
 	
 	private String outputPathDirectory;
 	private String inputPathDirectory;
+	private Integer threadCount;
+	private Integer progressValue;
 	
 	/**
 	 * 
 	 * @param args
 	 * @throws IOException
 	 */
-	// Initialize GUI window
+	// Initialize GUI window in a main function
 	public static void main(String[] args) throws IOException {
 		new GUI();
 	}
@@ -89,7 +98,11 @@ public class GUI extends JFrame implements ActionListener {
 		pnStartPane.setBorder(new EmptyBorder(2,2,2,2));
 		pnFolderPane.setBorder(new EmptyBorder(2,2,2,2));
 		
+		pnProgressBarPane.setBorder(new EmptyBorder(5,10,5,10));
+		lbProgress.setBorder(new EmptyBorder(5,0,5,0));
 		lbOutputLogLabel.setBorder(new EmptyBorder(5,5,5,5));
+		
+		pbProgressBar.setStringPainted(true);
 		
 		//pnContentPane.setLayout(new FlowLayout(FlowLayout.CENTER,15,5)); // create flowLayout (flexBox)
 		setContentPane(pnContentPane);
@@ -99,6 +112,7 @@ public class GUI extends JFrame implements ActionListener {
 		pnFolderPane.setBackground(Color.WHITE); 
 		pnStartPane.setBackground(Color.WHITE);
 		pnStartPaneSplit.setBackground(Color.WHITE);
+		
 		
 		/// Add ActionListeners to buttons
 		btnInputFolder.addActionListener(this);
@@ -126,8 +140,14 @@ public class GUI extends JFrame implements ActionListener {
 		pnStartPaneSplit.add(pnThreadNumberPane);
 		pnStartPaneSplit.add(btnStart,BorderLayout.EAST);		  // mandatory for BorderLayout
 		
+		pnProgressBarPane.add(lbProgress, BorderLayout.NORTH);
+		pnProgressBarPane.add(pbProgressBar, BorderLayout.CENTER);
+		
+		pnStartPane.add(pnProgressBarPane, BorderLayout.EAST);
 		
 		pnStartPane.add(pnStartPaneSplit,BorderLayout.NORTH);
+		pnStartPane.add(pnProgressBarPane, BorderLayout.SOUTH);
+		
 		pnContentPane.add(pnStartPane,BorderLayout.CENTER);
 		
 		pnContentPane.add(pnFolderPane,BorderLayout.NORTH);
@@ -139,7 +159,6 @@ public class GUI extends JFrame implements ActionListener {
 		
 		// Add ScrollPane to the GUI components.
 		pnStartPane.add(spScrollPane, BorderLayout.CENTER);
-		
 		
 		/** Important! **/
 		/// Make sure app is visible, off by default! Super important!
@@ -177,6 +196,7 @@ public class GUI extends JFrame implements ActionListener {
 			}
 		}else if (source == btnStart) {
 			
+			pbProgressBar.setValue(0);
 			boolean inputValid = false;
 			boolean outputValid = false;
 			
@@ -193,28 +213,24 @@ public class GUI extends JFrame implements ActionListener {
 				tbOutputPath.setText("");
 				appendToPane(tpScrollPane,"[ERROR] - Invalid output path: ".concat(strOutputPath).concat("\n"), Color.RED);
 			}
-			if (inputValid && outputValid) {
-				Integer threadCount = Integer.parseInt(tbThreadCount.getText());
+			if (checkIfNumericValid(tbThreadCount.getText())) {
+				threadCount = Integer.parseInt(tbThreadCount.getText());
+			}else {
+				appendToPane(tpScrollPane,"[ERROR] - Invalid thread count: ".concat(tbThreadCount.getText()).concat("\n"), Color.RED);
+				threadCount = 0;
+			}
+				
+			if (inputValid && outputValid && threadCount > 0) {
+
 				setOutputPathDirectory(tbOutputPath.getText());
 				setInputPathDirectory(tbInputPath.getText());
-				Metadata metadata = new Metadata();
-				metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
+				
 				try {
 					// Searching method
+					this.metadata = new Metadata(this);
+					pbProgressBar.setMaximum(metadata.countRegularFiles(strInputPath));
+					metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
 					metadata.discoverImages(strInputPath, threadCount);
-					/*
-					if (!Metadata.getIndexedImageList().isEmpty()) {
-						appendToPane(tpScrollPane,"[SUCCESS] - Copied Files: ".concat("\n").concat("\n"), Color.GREEN);
-					}
-					
-					/*else {
-						appendToPane(tpScrollPane,"[WARNING] - No unique files to copy found.".concat("\n").concat("\n"), Color.ORANGE);
-					}
-					
-					for (String imageName : Metadata.getIndexedImageList()) {
-						appendToPane(tpScrollPane,imageName.concat("\n"), Color.WHITE);
-					}
-					*/
 					
 				} catch (IOException io) {
 					io.printStackTrace();
@@ -231,17 +247,25 @@ public class GUI extends JFrame implements ActionListener {
 	 * @param path
 	 * @return
 	 */
-	public boolean checkValidFolderPath(String path) {
+	private boolean checkValidFolderPath(String path) {
 		return Files.exists(Paths.get(path));
-		
-		/*old version 
-		if (Files.exists(Paths.get(path))) {
-			return true;
-		}
-		return false;
-		*/
 	}
-	private void appendToPane(JTextPane tpScrollPane, String message, Color c) {
+	private boolean checkIfNumericValid(String numeric) {
+		if (numeric == null) {
+			return false;
+		}
+		try {
+			Integer num = Integer.parseInt(numeric);
+			if (num <= 0) {
+				return false;
+			}
+		}
+		catch (NumberFormatException nfe) {
+			return false;
+		}
+		return true;
+	}
+	protected void appendToPane(JTextPane tpScrollPane, String message, Color c) {
 		tpScrollPane.setEditable(true);
 		StyleContext sc = StyleContext.getDefaultStyleContext();
 		AttributeSet as = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
@@ -252,6 +276,10 @@ public class GUI extends JFrame implements ActionListener {
 		tpScrollPane.replaceSelection(message);
 		tpScrollPane.setEditable(false);
 	}
+	protected void notifyProgressBar(JProgressBar pbProgressBar) {
+		pbProgressBar.setValue(getProgressValue());
+	}
+	/// Getters and Setters
 	public String getOutputPathDirectory() {
 		return outputPathDirectory;
 	}
@@ -263,6 +291,59 @@ public class GUI extends JFrame implements ActionListener {
 	}
 	public void setInputPathDirectory(String inputPathDirectory) {
 		this.inputPathDirectory = inputPathDirectory;
+	}
+	public void notifyCopied(String imagePath) {
+		String msg = "Copied file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.WHITE);
+	}
+	public void notifyDuplicate(String imagePath) {
+		String msg = "Skipped duplicate file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.ORANGE);
+	}
+	public void notifyError(String imagePath) {
+		String msg = "Error invalid file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.RED);
+	}
+	public void setProgressValue(Integer progressValue){
+		this.progressValue = progressValue;
+		this.notifyProgressBar(pbProgressBar);
+	}
+	public Integer getProgressValue() {
+		return progressValue;
+	}
+	@Override
+	public void windowOpened(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowClosing(WindowEvent e) {
+		//metadata.shutdown();
+	}
+	@Override
+	public void windowClosed(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowIconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowDeiconified(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowActivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+	@Override
+	public void windowDeactivated(WindowEvent e) {
+		// TODO Auto-generated method stub
+		
 	}
 }
 

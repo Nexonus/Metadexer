@@ -1,5 +1,6 @@
 package pl.wit.projekt;
 
+import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.security.NoSuchAlgorithmException;
@@ -10,7 +11,7 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @author Artur Zakrzewski, Mateusz Bura
  *
  */
-/*
+
 public class WorkerThread implements Runnable {
 
 private Path path;
@@ -24,27 +25,25 @@ this.metadata = metadata;
     
 @Override
 public void run() {
-	synchronized(metadata) {
-		try {
-			if (!interrupted) {
-				System.out.println("Running " + Thread.currentThread().getName() + " thread alive: " + Thread.currentThread().isAlive());
-				metadata.processImage(path);
-			}else
-			{
-				System.out.println("Thread interrupted: ".concat(Thread.currentThread().getName()));
-			}
+	try {
+		if (!interrupted) {
+			System.out.println("Running " + Thread.currentThread().getName() + " thread alive: " + Thread.currentThread().isAlive());
+			metadata.processImage(path);
 		}
+		else{
+			System.out.println("Thread interrupted: ".concat(Thread.currentThread().getName()));}
+}
 		catch (IOException io) {
 			io.printStackTrace();
-		} catch (NoSuchAlgorithmException e) {
-			e.printStackTrace();
 		} 
-	}
+		catch (NoSuchAlgorithmException e) {
+			e.printStackTrace();
+		}
 }
 protected boolean setInterrupted(boolean interruptCase) {
 	return this.interrupted = interruptCase;
-}}*/
-
+}}
+/*
 public class WorkerThread implements Runnable {
 	/// To-do, create Worker Threads
 	 private Path path;
@@ -72,4 +71,4 @@ public class WorkerThread implements Runnable {
 			}
 	    }
 
-	}
+	}*/

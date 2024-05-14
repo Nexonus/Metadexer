@@ -122,8 +122,7 @@ public class Metadata {
 	    File file = new File(path.toString());
 	    final ImageMetadata metadata = Imaging.getMetadata(file);
 	    final JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
-	    boolean dupe = false;
-
+	    
 	    if (jpegMetadata != null) {
 			Integer imageIndex = 1;
 			
@@ -141,36 +140,40 @@ public class Metadata {
 				localOutputImage = localOutputDirectory.concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString()));
 			}
 			setStrOutputImagePath(localOutputImage);
-			if (Files.exists(Paths.get(previousFilePath))) {
-				// Create a new file *if it's not a duplicate!*
-				if (!fileHashcodeSet.contains(checksum(Paths.get(previousFilePath)))) {
-					Files.copy(path, Paths.get(localOutputImage));
-					++copiedFiles;
-				}else {
-					dupe = true;
-					gui.notifyDuplicate(path.toString());
-				}
-			}else
-			{
-				// Create a new file, if it wasn't created yet.
-				Files.copy(path, Paths.get(localOutputImage));
-				++copiedFiles;
-			}
-				
 			
-			++progressValue;
-			if (!dupe) {
-				gui.notifyCopied(path.toString());
-				gui.setProgressValue(progressValue);
-			}
-			dupe = false;
-		}
-	    else {
+			copyFiles(previousFilePath, localOutputImage, path);
+			
+			
+	    }else {
 	    	gui.notifyError(path.toString());
 	    	++progressValue;
 	    }
 		//System.out.println("Zakończono przetwarzanie obrazu: " + path.toString());
 }
+	public void copyFiles(String previousFilePath, String currentFilePath, Path originalFilePath) throws IOException, NoSuchAlgorithmException {
+		boolean dupe = false;
+		if (Files.exists(Paths.get(previousFilePath))) {
+			// Create a new file *if it's not a duplicate!*
+			if (!fileHashcodeSet.contains(checksum(Paths.get(previousFilePath)))) {
+				Files.copy(originalFilePath, Paths.get(currentFilePath));
+				++copiedFiles;
+			}else {
+				dupe = true;
+				gui.notifyDuplicate(originalFilePath.toString());
+			}
+		}else
+		{
+			// Create a new file, if it wasn't created yet.
+			Files.copy(originalFilePath, Paths.get(currentFilePath));
+			++copiedFiles;
+		}
+		++progressValue;
+		if (!dupe) {
+			gui.notifyCopied(originalFilePath.toString());
+			gui.setProgressValue(progressValue);
+		}
+		dupe = false;
+	}
 
 	public String getStrOutputDirectoryPath() {
 		return strOutputDirectoryPath;
@@ -182,7 +185,7 @@ public class Metadata {
 		this.strOutputDirectoryPath = strOutputDirectoryPath;
 	}
 	
-	public Integer countRegularFiles(String inputPath) throws IOException {
+	public static Integer countRegularFiles(String inputPath) throws IOException {
 			List<Path>pathList = new ArrayList<Path>();
 			pathList = Files.walk(Paths.get(inputPath))
 						.filter(Files::isRegularFile)

@@ -61,7 +61,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
 	private JLabel lbProgress = new JLabel("Progress:");
 	
-	private JProgressBar pbProgressBar = new JProgressBar();
+	//private JProgressBar pbProgressBar = new JProgressBar();
 	
 	private String outputPathDirectory;
 	private String inputPathDirectory;
@@ -102,7 +102,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		lbProgress.setBorder(new EmptyBorder(5,0,5,0));
 		lbOutputLogLabel.setBorder(new EmptyBorder(5,5,5,5));
 		
-		pbProgressBar.setStringPainted(true);
+		//pbProgressBar.setStringPainted(true);
 		
 		//pnContentPane.setLayout(new FlowLayout(FlowLayout.CENTER,15,5)); // create flowLayout (flexBox)
 		setContentPane(pnContentPane);
@@ -141,12 +141,13 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		pnStartPaneSplit.add(btnStart,BorderLayout.EAST);		  // mandatory for BorderLayout
 		
 		pnProgressBarPane.add(lbProgress, BorderLayout.NORTH);
-		pnProgressBarPane.add(pbProgressBar, BorderLayout.CENTER);
 		
-		pnStartPane.add(pnProgressBarPane, BorderLayout.EAST);
+		//pnProgressBarPane.add(pbProgressBar, BorderLayout.CENTER);
+		
+		//pnStartPane.add(pnProgressBarPane, BorderLayout.EAST);
 		
 		pnStartPane.add(pnStartPaneSplit,BorderLayout.NORTH);
-		pnStartPane.add(pnProgressBarPane, BorderLayout.SOUTH);
+		//pnStartPane.add(pnProgressBarPane, BorderLayout.SOUTH);
 		
 		pnContentPane.add(pnStartPane,BorderLayout.CENTER);
 		
@@ -196,7 +197,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 			}
 		}else if (source == btnStart) {
 			
-			pbProgressBar.setValue(0);
+			//pbProgressBar.setValue(0);
 			boolean inputValid = false;
 			boolean outputValid = false;
 			
@@ -228,7 +229,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 				try {
 					// Searching method
 					this.metadata = new Metadata(this);
-					pbProgressBar.setMaximum(metadata.countRegularFiles(strInputPath));
+					//pbProgressBar.setMaximum(metadata.countRegularFiles(strInputPath));
 					metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
 					metadata.discoverImages(strInputPath, threadCount);
 					
@@ -308,10 +309,12 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		String msg = "Number of copied files "+copiedFiles+("\n");
 		this.appendToPane(tpScrollPane, msg, Color.LIGHT_GRAY);
 	}
+	/*
 	public void setProgressValue(Integer progressValue){
 		this.progressValue = progressValue;
 		this.notifyProgressBar(pbProgressBar);
-	}
+	}*/
+	
 	public Integer getProgressValue() {
 		return progressValue;
 	}

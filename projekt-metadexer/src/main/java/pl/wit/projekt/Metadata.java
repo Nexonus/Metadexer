@@ -42,7 +42,7 @@ public class Metadata {
 	
 	private String strOutputDirectoryPath=null;
 	private String strOutputImagePath=null;
-	private Integer progressValue = 0;
+	//private Integer progressValue = 0;
 	private Integer copiedFiles = 0;
 	
 	private ExecutorService executorService = Executors.newFixedThreadPool(1);
@@ -72,7 +72,8 @@ public class Metadata {
 	public void discoverImages(String directory, Integer threadCount) throws IOException, InterruptedException, NoSuchAlgorithmException{
 		// zapewnia utworzenie puli wątków do której można w miarę potrzeby dodawać kolejne wątki, a także ponownie wykorzystywać już istniejące.
 		// Create new thread pool
-		progressValue = 0;
+		
+		//progressValue = 0;
 		this.executorService = Executors.newFixedThreadPool(threadCount);
 		Path rootDirectory = Paths.get(directory);
 		
@@ -91,7 +92,7 @@ public class Metadata {
 				}
 				else {
 					gui.notifyError(path.toString());
-			    	++progressValue;
+			    	//++progressValue;
 			    }
 				System.out.println(executorService.toString());
 			}
@@ -139,14 +140,14 @@ public class Metadata {
 				++imageIndex;
 				localOutputImage = localOutputDirectory.concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString()));
 			}
-			setStrOutputImagePath(localOutputImage);
+			//setStrOutputImagePath(localOutputImage);
 			
 			copyFiles(previousFilePath, localOutputImage, path);
 			
 			
 	    }else {
 	    	gui.notifyError(path.toString());
-	    	++progressValue;
+	    	//++progressValue;
 	    }
 		//System.out.println("Zakończono przetwarzanie obrazu: " + path.toString());
 }
@@ -167,10 +168,10 @@ public class Metadata {
 			Files.copy(originalFilePath, Paths.get(currentFilePath));
 			++copiedFiles;
 		}
-		++progressValue;
+		//++progressValue;
 		if (!dupe) {
 			gui.notifyCopied(originalFilePath.toString());
-			gui.setProgressValue(progressValue);
+			//gui.setProgressValue(progressValue);
 		}
 		dupe = false;
 	}
@@ -200,10 +201,14 @@ public class Metadata {
 		String md5HexA = DigestUtils.md5Hex(byteDigest).toUpperCase();
 		return md5HexA;
 	}
-
+	
+	/*
 	public void setStrOutputImagePath(String strOutputImagePath) {
 		this.strOutputImagePath = strOutputImagePath;
 	}
+	*/
+	
+	
 	/*
 	protected void shutdown() {
 		this.thread.setInterrupted(true);

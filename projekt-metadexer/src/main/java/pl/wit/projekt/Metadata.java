@@ -43,6 +43,7 @@ public class Metadata {
 	private String strOutputDirectoryPath=null;
 	private String strOutputImagePath=null;
 	private Integer progressValue = 0;
+	private Integer copiedFiles = 0;
 	
 	private ExecutorService executorService = Executors.newFixedThreadPool(1);
 	
@@ -103,6 +104,7 @@ public class Metadata {
 		}catch (IOException e) {
 			e.printStackTrace();
 		} 		
+		gui.notifyCopiedFiles(copiedFiles);
 		//System.out.println("Zakończono przetwarzanie WSZYTSKICH obrazów."); //dbg
 	}
 	
@@ -143,13 +145,18 @@ public class Metadata {
 				// Create a new file *if it's not a duplicate!*
 				if (!fileHashcodeSet.contains(checksum(Paths.get(previousFilePath)))) {
 					Files.copy(path, Paths.get(localOutputImage));
+					++copiedFiles;
 				}else {
 					dupe = true;
 					gui.notifyDuplicate(path.toString());
 				}
 			}else
+			{
 				// Create a new file, if it wasn't created yet.
 				Files.copy(path, Paths.get(localOutputImage));
+				++copiedFiles;
+			}
+				
 			
 			++progressValue;
 			if (!dupe) {

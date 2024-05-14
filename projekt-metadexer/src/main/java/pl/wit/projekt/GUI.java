@@ -304,6 +304,10 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		String msg = "Error invalid file: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.RED);
 	}
+	public void notifyCopiedFiles(Integer copiedFiles) throws IOException {
+		String msg = "Number of copied files "+copiedFiles+("\n");
+		this.appendToPane(tpScrollPane, msg, Color.LIGHT_GRAY);
+	}
 	public void setProgressValue(Integer progressValue){
 		this.progressValue = progressValue;
 		this.notifyProgressBar(pbProgressBar);

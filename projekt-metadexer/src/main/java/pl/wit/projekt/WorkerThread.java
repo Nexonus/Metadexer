@@ -27,7 +27,7 @@ this.metadata = metadata;
 public void run() {
 	try {
 		if (!interrupted) {
-			System.out.println("Running " + Thread.currentThread().getName() + " thread alive: " + Thread.currentThread().isAlive());
+			//System.out.println("Running " + Thread.currentThread().getName() + " thread alive: " + Thread.currentThread().isAlive());
 			metadata.processImage(path);
 		}
 		else{

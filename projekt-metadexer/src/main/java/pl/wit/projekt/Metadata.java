@@ -15,8 +15,10 @@ import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.concurrent.ExecutorService;
@@ -40,10 +42,12 @@ public class Metadata {
 	
 	private Set<String>fileHashcodeSet = new HashSet<String>();
 	
-	private String strOutputDirectoryPath=null;
-	private String strOutputImagePath=null;
+	private String rootOutputDirectory=null;
+	//private String strOutputImagePath=null;
+	
 	//private Integer progressValue = 0;
 	private Integer copiedFiles = 0;
+	protected Map<String, File>directoryMap = new HashMap<String, File>();
 	
 	private ExecutorService executorService = Executors.newFixedThreadPool(1);
 	
@@ -54,8 +58,22 @@ public class Metadata {
 	}
 
 	/// Get file extension using FilenameUtils
-	public String getFileExtension(String filename) {
+	public static String getFileExtension(String filename) {
 		return FilenameUtils.getExtension(filename);
+	}
+	public static boolean validImageFile(String filename) {
+		switch(getFileExtension(filename)) {
+			case "jpg":{
+				return true;
+			}
+			case "jpeg":{
+				return true;
+			}
+			default:{
+				return false;
+			}
+		}
+		// Add potentially other files in the future
 	}
 	
 	/// Use this to extract hashcodes from existing files to prevent duplicate images.
@@ -85,7 +103,7 @@ public class Metadata {
 			// Use Collectors to filter out only regular files from Input Root Folder
 			
 			/// Select JPG or JPEG files for input source path, give work to ExecutorService to process input. (Get rid of non JPG's)
-			scanDirectories(getStrOutputDirectoryPath()); // single-thread scan of output dir
+			scanDirectories(getRootOutputDirectoryPath()); // single-thread scan of output dir
 			for (Path path : pathSet) {
 				if (getFileExtension(path.toString()).equals("jpg") || getFileExtension(path.toString()).equals("jpeg")) {
 					executorService.execute(new WorkerThread(path, this));	// multi-thread processing
@@ -118,78 +136,77 @@ public class Metadata {
 	 */
 	// Przetwarzanie obrazu, ekstrakcja metadanych, nazwanie katalogów docelowych oraz pliku docelowego
 	
-	public synchronized void processImage(Path path) throws IOException, ImagingException, NoSuchAlgorithmException {
+	public void processImage(Path path) throws IOException, ImagingException, NoSuchAlgorithmException {
 		//System.out.println("Przetwarzanie obrazu: \t" + path.toString());
 	    File file = new File(path.toString());
 	    final ImageMetadata metadata = Imaging.getMetadata(file);
 	    final JpegImageMetadata jpegMetadata = (JpegImageMetadata) metadata;
 	    
 	    if (jpegMetadata != null) {
-			Integer imageIndex = 1;
+			Integer imageIndex = 1;	// How will this impact synchronization? (horribly - *explodes*)
 			
-			String localOutputDirectory = (getStrOutputDirectoryPath().concat(getDateMetadata(jpegMetadata, ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL)).concat("\\"));
-			String localOutputImage = localOutputDirectory.concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString()));
-			String previousFilePath = localOutputImage;
-			
-			if (!Files.exists(Paths.get(localOutputDirectory))) {
-				Files.createDirectories(Paths.get(localOutputDirectory));
-			}
-	
-			while (Files.exists(Paths.get(localOutputImage))) {
-				previousFilePath = localOutputDirectory.concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString()));
-				++imageIndex;
-				localOutputImage = localOutputDirectory.concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString()));
-			}
-			//setStrOutputImagePath(localOutputImage);
-			
-			copyFiles(previousFilePath, localOutputImage, path);
-			
-			
-	    }else {
-	    	gui.notifyError(path.toString());
-	    	//++progressValue;
-	    }
-		//System.out.println("Zakończono przetwarzanie obrazu: " + path.toString());
-}
-	public void copyFiles(String previousFilePath, String currentFilePath, Path originalFilePath) throws IOException, NoSuchAlgorithmException {
-		boolean dupe = false;
-		if (Files.exists(Paths.get(previousFilePath))) {
-			// Create a new file *if it's not a duplicate!*
-			if (!fileHashcodeSet.contains(checksum(Paths.get(previousFilePath)))) {
-				Files.copy(originalFilePath, Paths.get(currentFilePath));
-				++copiedFiles;
-			}else {
-				dupe = true;
-				gui.notifyDuplicate(originalFilePath.toString());
-			}
-		}else
-		{
-			// Create a new file, if it wasn't created yet.
-			Files.copy(originalFilePath, Paths.get(currentFilePath));
-			++copiedFiles;
-		}
-		//++progressValue;
-		if (!dupe) {
-			gui.notifyCopied(originalFilePath.toString());
-			//gui.setProgressValue(progressValue);
-		}
-		dupe = false;
-	}
+			String exifDate = getDateMetadata(jpegMetadata, ExifTagConstants.EXIF_TAG_DATE_TIME_ORIGINAL);
+			String localOutputDirectory = null;
+			String localOutputFile = null;
+			String previousOutputFile = null;
 
-	public String getStrOutputDirectoryPath() {
-		return strOutputDirectoryPath;
+			File directory = null;
+
+			synchronized(directoryMap) {
+				if (directoryMap.containsKey(exifDate)) {
+					directory = directoryMap.get(exifDate);}
+				else {
+					localOutputDirectory = (getRootOutputDirectoryPath().concat(exifDate).concat("\\"));
+					directory = new File(localOutputDirectory);
+					directory.mkdirs();
+					directoryMap.put(exifDate, directory);}
+			}
+			
+			synchronized(directory) {
+				if (directory != null) {
+					localOutputFile = directory.toString().concat("\\").concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString())); 
+					while (Files.exists(Paths.get(localOutputFile)) || localOutputFile == null) {
+						previousOutputFile = localOutputFile;
+						localOutputFile = directory.toString().concat("\\").concat(imageIndex.toString()).concat(".").concat(getFileExtension(path.toString())); 
+						++imageIndex;
+					}
+					if (imageIndex == 1 && previousOutputFile == null) {
+						previousOutputFile = localOutputFile;
+					}
+					
+					if (!Files.exists(Paths.get(previousOutputFile))) {
+						Files.copy(path, Paths.get(localOutputFile));
+						gui.notifyCopied(path.toString());
+						++copiedFiles;
+					}
+					else {
+						if (!fileHashcodeSet.contains(checksum(Paths.get(previousOutputFile)))) {
+							Files.copy(path, Paths.get(localOutputFile));
+							gui.notifyCopied(path.toString());
+							++copiedFiles;
+							}
+						else {
+							gui.notifyDuplicate(path.toString());
+						}
+					}
+					System.out.println(previousOutputFile + " " + imageIndex + localOutputFile);
+			}
+		}
 	}
-	public String getStrOutputImagePath() {
-		return strOutputImagePath;
+}
+
+	public String getRootOutputDirectoryPath() {
+		return rootOutputDirectory;
 	}
-	public void setStrOutputDirectoryPath(String strOutputDirectoryPath) {
-		this.strOutputDirectoryPath = strOutputDirectoryPath;
+	public void setRootOutputDirectory(String strOutputDirectoryPath) {
+		this.rootOutputDirectory = strOutputDirectoryPath;
 	}
 	
-	public static Integer countRegularFiles(String inputPath) throws IOException {
+	public static Integer countImageFiles(String inputPath) throws IOException {
 			List<Path>pathList = new ArrayList<Path>();
 			pathList = Files.walk(Paths.get(inputPath))
 						.filter(Files::isRegularFile)
+						.filter(p -> validImageFile(p.toString()))
 						.collect(Collectors.toList());
 			return pathList.size();
 	}
@@ -201,20 +218,6 @@ public class Metadata {
 		String md5HexA = DigestUtils.md5Hex(byteDigest).toUpperCase();
 		return md5HexA;
 	}
-	
-	/*
-	public void setStrOutputImagePath(String strOutputImagePath) {
-		this.strOutputImagePath = strOutputImagePath;
-	}
-	*/
-	
-	
-	/*
-	protected void shutdown() {
-		this.thread.setInterrupted(true);
-	}
-	private boolean getShutdown() {
-		return this.thread.interrupted;
-	}*/
+
 }
 

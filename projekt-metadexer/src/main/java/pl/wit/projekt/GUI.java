@@ -15,6 +15,8 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -24,6 +26,7 @@ import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
 
 import org.apache.commons.imaging.ImagingException;
+import org.apache.commons.io.FileUtils;
 
 public class GUI extends JFrame implements ActionListener, WindowListener {
 	
@@ -41,6 +44,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private JButton btnInputFolder = new JButton("Choose Input Folder");
 	private JButton btnOutputFolder = new JButton("Choose Output Folder");
 	private JButton btnStart = new JButton("Start");
+	private JButton btnCleanup = new JButton("Cleanup");
 	
 	// Create Panels
 	private JPanel pnContentPane = new JPanel(new BorderLayout());
@@ -48,8 +52,9 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private JPanel pnInputPane = new JPanel(new GridLayout(1,3));
 	private JPanel pnOutputPane = new JPanel(new GridLayout(1,2));
 	private JPanel pnStartPane = new JPanel(new BorderLayout());
-	private JPanel pnStartPaneSplit = new JPanel(new GridLayout(1,3));
-	private JPanel pnProgressBarPane = new JPanel(new GridLayout(2,1));
+	private JPanel pnStartPaneSplit = new JPanel(new GridLayout(1,4));
+	private JPanel pnStartPaneBottom = new JPanel(new BorderLayout());
+	//private JPanel pnProgressBarPane = new JPanel(new GridLayout(2,1));
 	
 	private JPanel pnThreadNumberPane = new JPanel(new GridLayout(1,2));
 	
@@ -58,8 +63,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private JScrollPane spScrollPane = new JScrollPane(tpScrollPane);
 	
 	private JLabel lbOutputLogLabel = new JLabel("Output log:");
-	private JLabel lbThreadUsageLabel = new JLabel("Thread count:");
-	private JLabel lbProgress = new JLabel("Progress:");
+	private JLabel lbThreadUsageLabel = new JLabel();
 	
 	//private JProgressBar pbProgressBar = new JProgressBar();
 	
@@ -67,7 +71,11 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private String inputPathDirectory;
 	private Integer threadCount;
 	private Integer progressValue;
+	private Integer maxProcessors = Runtime.getRuntime().availableProcessors();
+	private long startTime;
+	private long finishTime;
 	
+	private Map<Integer, Long> measurementMap = new HashMap<Integer, Long>();
 	/**
 	 * 
 	 * @param args
@@ -98,9 +106,14 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		pnStartPane.setBorder(new EmptyBorder(2,2,2,2));
 		pnFolderPane.setBorder(new EmptyBorder(2,2,2,2));
 		
-		pnProgressBarPane.setBorder(new EmptyBorder(5,10,5,10));
-		lbProgress.setBorder(new EmptyBorder(5,0,5,0));
+		pnStartPaneBottom.setBorder(new EmptyBorder(1,4,1,4));
 		lbOutputLogLabel.setBorder(new EmptyBorder(5,5,5,5));
+		
+		
+		btnCleanup.setBackground(Color.RED);
+		btnCleanup.setForeground(Color.WHITE);
+		
+		lbThreadUsageLabel.setText("0 < Threads < "+(maxProcessors+1));
 		
 		//pbProgressBar.setStringPainted(true);
 		
@@ -110,15 +123,19 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		/// Set debug colors for each panel
 		pnContentPane.setBackground(Color.WHITE); 
 		pnFolderPane.setBackground(Color.WHITE); 
-		pnStartPane.setBackground(Color.WHITE);
+		pnStartPane.setBackground(Color.LIGHT_GRAY);
 		pnStartPaneSplit.setBackground(Color.WHITE);
+		pnStartPaneBottom.setBackground(Color.WHITE);
 		
 		
 		/// Add ActionListeners to buttons
 		btnInputFolder.addActionListener(this);
 		btnOutputFolder.addActionListener(this);
 		btnStart.addActionListener(this);
-			
+		btnCleanup.addActionListener(this);
+		
+		tbInputPath.addActionListener(this);
+		
 		/// Choose Directories with fileChoosers
 		fcInputChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
 		fcOutputChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
@@ -132,21 +149,28 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		pnOutputPane.add(btnOutputFolder,BorderLayout.CENTER);
 		pnFolderPane.add(pnOutputPane,BorderLayout.SOUTH);
 		
-		pnThreadNumberPane.add(lbThreadUsageLabel);
+		//pnThreadNumberPane.add(lbThreadUsageLabel);
 		pnThreadNumberPane.add(tbThreadCount);
 		
 		// Add panels to the ContentPane, mostly visual stuff
-		pnStartPaneSplit.add(lbOutputLogLabel,BorderLayout.WEST); // borderlayout.west property non-necessary for any GridLayout if set as so
+		//pnStartPaneSplit.add(lbOutputLogLabel,BorderLayout.WEST); // borderlayout.west property non-necessary for any GridLayout if set as so
+		pnStartPaneSplit.add(lbThreadUsageLabel);
+		
 		pnStartPaneSplit.add(pnThreadNumberPane);
 		pnStartPaneSplit.add(btnStart,BorderLayout.EAST);		  // mandatory for BorderLayout
+		pnStartPaneSplit.add(btnCleanup);
 		
-		pnProgressBarPane.add(lbProgress, BorderLayout.NORTH);
+		//pnProgressBarPane.add(lbProgress, BorderLayout.NORTH);
 		
 		//pnProgressBarPane.add(pbProgressBar, BorderLayout.CENTER);
 		
 		//pnStartPane.add(pnProgressBarPane, BorderLayout.EAST);
 		
+		pnStartPaneBottom.add(lbOutputLogLabel);
+		
 		pnStartPane.add(pnStartPaneSplit,BorderLayout.NORTH);
+		pnStartPane.add(pnStartPaneBottom, BorderLayout.SOUTH);
+		
 		//pnStartPane.add(pnProgressBarPane, BorderLayout.SOUTH);
 		
 		pnContentPane.add(pnStartPane,BorderLayout.CENTER);
@@ -174,16 +198,68 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		String strInputPath = tbInputPath.getText();
 		String strOutputPath = tbOutputPath.getText();
 		
+		boolean inputValid = false;
+		boolean outputValid = false;
+		
 		int result;
+		if (source == btnCleanup) {
+			tpScrollPane.setText("");
+			if(!strOutputPath.contains("\\Metadexer\\Metadexer\\"))
+				this.appendToPane(tpScrollPane, "⚠ Access denied.", Color.ORANGE, Color.DARK_GRAY);
+			else {
+				this.appendToPane(tpScrollPane, "⚠ You're about to remove ALL files from: ".concat(strOutputPath).concat("\nPlease write 'delete' in the Input Box to confirm, then press this button again.\n\n"), Color.ORANGE, Color.DARK_GRAY);
+				
+				if (tbInputPath.getText().equals("delete")) {
+					try {
+						if (Files.exists(Paths.get(strOutputPath)))
+						{
+							tpScrollPane.setText("");
+							measurementMap.clear();
+							File directory = new File(strOutputPath);
+							this.appendToPane(tpScrollPane, "⚠ Deleted: "+Metadata.countImageFiles(strOutputPath)+" files.", Color.ORANGE, Color.DARK_GRAY);
+							FileUtils.cleanDirectory(directory);
+						}
+					} catch (IOException e) {
+						e.printStackTrace();
+					}
+				}
+			}
+			
+		}
+		
+		if (source == tbInputPath) {
+			try {
+				tpScrollPane.setText("");
+				measurementMap.clear();
+				if (Files.exists(Paths.get(strInputPath))) {
+					this.appendToPane(tpScrollPane, "- You're about to copy "+Metadata.countImageFiles(strInputPath)+" images. Press Start to begin.\n", Color.WHITE, Color.DARK_GRAY);
+				}else {
+					appendToPane(tpScrollPane,"@ Invalid input path: ".concat(strInputPath).concat("\n"), Color.RED, Color.BLACK);
+				}
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
 		
 		if (source == btnInputFolder) {
 
 			result = fcInputChooser.showOpenDialog(this);
 			if (result == JFileChooser.APPROVE_OPTION) {
+				if (strInputPath != tbInputPath.getText()) {
+					tpScrollPane.setText("");
+					measurementMap.clear();
+				}
 				strInputPath = fcInputChooser.getSelectedFile().getAbsolutePath(); // "getAbsolutePath" returns a string, there's no need to call "toString()"
 				tbInputPath.setText(strInputPath);
+
+				try {
+					tpScrollPane.setText("");
+					this.appendToPane(tpScrollPane, "- You're about to copy "+Metadata.countImageFiles(strInputPath)+" images. Press Start to begin.\n", Color.WHITE, Color.DARK_GRAY);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				
 			}else {
-				strInputPath = "";
 				tbInputPath.setText(strInputPath);
 			}
 		}else if (source == btnOutputFolder) {
@@ -192,32 +268,29 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 				strOutputPath = fcOutputChooser.getSelectedFile().getAbsolutePath();
 				tbOutputPath.setText(strOutputPath);
 			}else {
-				strOutputPath = "";
 				tbOutputPath.setText(strOutputPath);
 			}
 		}else if (source == btnStart) {
 			
 			//pbProgressBar.setValue(0);
-			boolean inputValid = false;
-			boolean outputValid = false;
 			
 			tpScrollPane.setText(""); // 
 			if (checkValidFolderPath(tbInputPath.getText()) && tbInputPath.getText() != null && !tbInputPath.getText().isEmpty()) {
 				inputValid = true;
 			}else {
-				tbInputPath.setText("");
-				appendToPane(tpScrollPane,"[ERROR] - Invalid input path: ".concat(strInputPath).concat("\n"), Color.RED);
+				
+				appendToPane(tpScrollPane,"@ Invalid input path: ".concat(strInputPath).concat("\n"), Color.RED, Color.BLACK);
 			}
 			if (checkValidFolderPath(tbOutputPath.getText()) && tbOutputPath.getText() != null && !tbOutputPath.getText().isEmpty()) {
 				outputValid = true;
 			}else {
-				tbOutputPath.setText("");
-				appendToPane(tpScrollPane,"[ERROR] - Invalid output path: ".concat(strOutputPath).concat("\n"), Color.RED);
+				
+				appendToPane(tpScrollPane,"@ Invalid output path: ".concat(strOutputPath).concat("\n"), Color.RED, Color.BLACK);
 			}
 			if (checkIfNumericValid(tbThreadCount.getText())) {
 				threadCount = Integer.parseInt(tbThreadCount.getText());
 			}else {
-				appendToPane(tpScrollPane,"[ERROR] - Invalid thread count: ".concat(tbThreadCount.getText()).concat("\n"), Color.RED);
+				appendToPane(tpScrollPane,"@ Invalid thread count: ".concat(tbThreadCount.getText()).concat("\n"), Color.RED, Color.BLACK);
 				threadCount = 0;
 			}
 				
@@ -227,10 +300,11 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 				setInputPathDirectory(tbInputPath.getText());
 				
 				try {
+					startTime = System.currentTimeMillis();
 					// Searching method
 					this.metadata = new Metadata(this);
 					//pbProgressBar.setMaximum(metadata.countRegularFiles(strInputPath));
-					metadata.setStrOutputDirectoryPath(strOutputPath.concat("\\"));
+					metadata.setRootOutputDirectory(strOutputPath.concat("\\"));
 					metadata.discoverImages(strInputPath, threadCount);
 					
 				} catch (IOException io) {
@@ -257,7 +331,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		}
 		try {
 			Integer num = Integer.parseInt(numeric);
-			if (num <= 0) {
+			if (num <= 0 || num > maxProcessors) {
 				return false;
 			}
 		}
@@ -266,14 +340,16 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		}
 		return true;
 	}
-	protected void appendToPane(JTextPane tpScrollPane, String message, Color c) {
+	protected void appendToPane(JTextPane tpScrollPane, String message, Color c, Color bg) {
 		tpScrollPane.setEditable(true);
 		StyleContext sc = StyleContext.getDefaultStyleContext();
-		AttributeSet as = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
+		AttributeSet asFg = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Foreground, c);
+		AttributeSet asBg = sc.addAttribute(SimpleAttributeSet.EMPTY, StyleConstants.Background, bg);
 		
 		int length = tpScrollPane.getDocument().getLength();
 		tpScrollPane.setCaretPosition(length);
-		tpScrollPane.setCharacterAttributes(as, false);
+		tpScrollPane.setCharacterAttributes(asFg, false);
+		tpScrollPane.setCharacterAttributes(asBg, false);
 		tpScrollPane.replaceSelection(message);
 		tpScrollPane.setEditable(false);
 	}
@@ -294,20 +370,27 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		this.inputPathDirectory = inputPathDirectory;
 	}
 	public void notifyCopied(String imagePath) {
-		String msg = "Copied file: ".concat(imagePath).concat("\n");
-		this.appendToPane(tpScrollPane, msg, Color.WHITE);
+		String msg = "> Copied file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.GREEN, Color.BLACK);
 	}
 	public void notifyDuplicate(String imagePath) {
-		String msg = "Skipped duplicate file: ".concat(imagePath).concat("\n");
-		this.appendToPane(tpScrollPane, msg, Color.ORANGE);
+		String msg = "⚠ Skipped duplicate file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.ORANGE, Color.BLACK);
 	}
 	public void notifyError(String imagePath) {
-		String msg = "Error invalid file: ".concat(imagePath).concat("\n");
-		this.appendToPane(tpScrollPane, msg, Color.RED);
+		String msg = "# Error invalid file: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.RED, Color.BLACK);
 	}
 	public void notifyCopiedFiles(Integer copiedFiles) throws IOException {
-		String msg = "Number of copied files "+copiedFiles+("\n");
-		this.appendToPane(tpScrollPane, msg, Color.LIGHT_GRAY);
+		finishTime = System.currentTimeMillis();
+		String msg = "\n- Number of copied files: "+copiedFiles+(" in time: ")+(finishTime-startTime)+(" ms \n\n");
+		measurementMap.put(threadCount, finishTime-startTime);
+		this.appendToPane(tpScrollPane, msg, Color.WHITE, Color.DARK_GRAY);
+		
+		this.appendToPane(tpScrollPane, "Time measurements: \n", Color.WHITE, Color.BLACK);
+		for (Integer key : measurementMap.keySet()) {
+			this.appendToPane(tpScrollPane, key+"-Thread's : "+measurementMap.get(key)+" miliseconds \n", Color.WHITE, Color.BLACK);
+		}
 	}
 	/*
 	public void setProgressValue(Integer progressValue){

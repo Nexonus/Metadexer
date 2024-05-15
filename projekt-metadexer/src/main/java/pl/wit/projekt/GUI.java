@@ -1,10 +1,5 @@
 package pl.wit.projekt;
 
-/***
- * @author Jan Konarski - Graphic Interface setup
- * Implementacja interfejsu graficznego programu do indeksowania i sortowania plików JPG na bazie metadanych EXIF
- */
-
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -28,10 +23,14 @@ import javax.swing.text.AttributeSet;
 import javax.swing.text.SimpleAttributeSet;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyleContext;
-
-import org.apache.commons.imaging.ImagingException;
 import org.apache.commons.io.FileUtils;
 
+/**
+ * 
+ * @author Jan Konarski - ID06PD1 - 20356
+ * @category GUI
+ * Implementacja interfejsu graficznego - Metadexer
+ */
 public class GUI extends JFrame implements ActionListener, WindowListener {
 	
 	private Metadata metadata;
@@ -81,22 +80,22 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private long finishTime;
 	
 	private Map<Integer, Long> measurementMap = new HashMap<Integer, Long>();
+	
+	// Initialize GUI window in a main function
 	/**
 	 * 
 	 * @param args
 	 * @throws IOException
 	 */
-	// Initialize GUI window in a main function
 	public static void main(String[] args) throws IOException {
 		new GUI();
 	}
-	/***
+	/**
 	 * 
-	 * @throws ImagingException
 	 * @throws IOException
 	 */
 	public GUI() throws IOException {
-		super("METADEXER");
+		super("Metadexer");	// Window title
 
 		lbThreadUsageLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		
@@ -207,9 +206,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		/// Make sure app is visible, off by default! Super important!
 		setVisible(true);
 	}
-	/***
-	 * Action Performed : Check for which button is pressed and read DialogResult to perform an action.
-	 */
+	
 	@Override
 	public void actionPerformed(ActionEvent ae) { // Refactor this method to reduce its Cognitive Complexity from 29 to the 15 allowed. [+18 locations]
 		Object source = ae.getSource();
@@ -349,14 +346,22 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 			}
 		}
 	}
+	// Check if file exists at selected path
 	/**
-	 * Check if Path leads to a valid existing file (Directory)
+	 * 
 	 * @param path
 	 * @return
 	 */
 	private boolean checkValidFolderPath(String path) {
 		return Files.exists(Paths.get(path));
 	}
+	
+	// Check if the thread number is valid
+	/**
+	 * 
+	 * @param numeric
+	 * @return
+	 */
 	private boolean checkIfNumericValid(String numeric) {
 		if (numeric == null) {
 			return false;
@@ -372,6 +377,14 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		}
 		return true;
 	}
+	// Add colored text to the Output Log
+	/**
+	 * 
+	 * @param tpScrollPane
+	 * @param message
+	 * @param c
+	 * @param bg
+	 */
 	protected void appendToPane(JTextPane tpScrollPane, String message, Color c, Color bg) {
 		tpScrollPane.setEditable(true);
 		StyleContext sc = StyleContext.getDefaultStyleContext();
@@ -385,38 +398,79 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		tpScrollPane.replaceSelection(message);
 		tpScrollPane.setEditable(false);
 	}
+	/**
+	 * 
+	 * @param pbProgressBar
+	 */
 	protected void notifyProgressBar(JProgressBar pbProgressBar) {
 		pbProgressBar.setValue(getProgressValue());
 	}
 	/// Getters and Setters
+	/**
+	 * 
+	 * @return
+	 */
 	public String getOutputPathDirectory() {
 		return outputPathDirectory;
 	}
+	/**
+	 * 
+	 * @param outputPathDirectory
+	 */
 	public void setOutputPathDirectory(String outputPathDirectory) {
 		this.outputPathDirectory = outputPathDirectory;
 	}
+	/**
+	 * 
+	 * @return
+	 */
 	public String getInputPathDirectory() {
 		return inputPathDirectory;
 	}
+	/**
+	 * 
+	 * @param inputPathDirectory
+	 */
 	public void setInputPathDirectory(String inputPathDirectory) {
 		this.inputPathDirectory = inputPathDirectory;
 	}
+	/**
+	 * 
+	 * @param imagePath
+	 */
 	public void notifyCopied(String imagePath) {
 		String msg = "> Copied file: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.GREEN, Color.BLACK);
 	}
+	/**
+	 * 
+	 * @param imagePath
+	 */
 	public void notifyDuplicate(String imagePath) {
 		String msg = "⚠ Skipped duplicate file: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.ORANGE, Color.BLACK);
 	}
+	/**
+	 * 
+	 * @param imagePath
+	 */
 	public void notifyError(String imagePath) {
 		String msg = "# Error - Not an Image: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.RED, Color.BLACK);
 	}
+	/**
+	 * 
+	 * @param imagePath
+	 */
 	public void notifyNoMetadata(String imagePath) {
 		String msg = "% File has no EXIF metadata, skipping: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.ORANGE, Color.BLACK);
 	}
+	/***
+	 * 
+	 * @param copiedFiles
+	 * @throws IOException
+	 */
 	public void notifyCopiedFiles(Integer copiedFiles) throws IOException {
 		finishTime = System.currentTimeMillis();
 		String msg = "\n- Number of copied files: "+copiedFiles+(" in time: ")+(finishTime-startTime)+(" ms \n\n");
@@ -433,7 +487,10 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		this.progressValue = progressValue;
 		this.notifyProgressBar(pbProgressBar);
 	}*/
-	
+	/**
+	 * 
+	 * @return
+	 */
 	public Integer getProgressValue() {
 		return progressValue;
 	}
@@ -471,9 +528,17 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		// TODO Auto-generated method stub
 		
 	}
+	/**
+	 * 
+	 * @return
+	 */
 	public Integer getConfirm() {
 		return confirm;
 	}
+	/**
+	 * 
+	 * @param confirm
+	 */
 	public void setConfirm(Integer confirm) {
 		this.confirm = confirm;
 	}

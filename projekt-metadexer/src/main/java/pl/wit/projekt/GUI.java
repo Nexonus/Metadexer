@@ -12,12 +12,16 @@ import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.security.NoSuchAlgorithmException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.imageio.ImageIO;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.text.AttributeSet;
@@ -72,6 +76,7 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	private Integer threadCount;
 	private Integer progressValue;
 	private Integer maxProcessors = Runtime.getRuntime().availableProcessors();
+	private Integer confirm=0;
 	private long startTime;
 	private long finishTime;
 	
@@ -127,6 +132,19 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		pnStartPaneSplit.setBackground(Color.WHITE);
 		pnStartPaneBottom.setBackground(Color.WHITE);
 		
+		/// Add Icons
+
+		ArrayList<Image>iconList = new ArrayList<Image>();
+		URL iconPath = GUI.class.getResource("/icon32.png");
+		Image icon = ImageIO.read(iconPath);
+		iconList.add(icon);
+		
+		
+		iconPath = GUI.class.getResource("/icon64.png");
+		icon = ImageIO.read(iconPath);
+		iconList.add(icon);
+		
+		this.setIconImages(iconList);
 		
 		/// Add ActionListeners to buttons
 		btnInputFolder.addActionListener(this);
@@ -200,31 +218,45 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		
 		boolean inputValid = false;
 		boolean outputValid = false;
+		boolean cleanupStart = false;
 		
 		int result;
 		if (source == btnCleanup) {
 			tpScrollPane.setText("");
-			if(!strOutputPath.contains("\\Metadexer\\Metadexer\\"))
-				this.appendToPane(tpScrollPane, "⚠ Access denied.", Color.ORANGE, Color.DARK_GRAY);
-			else {
-				this.appendToPane(tpScrollPane, "⚠ You're about to remove ALL files from: ".concat(strOutputPath).concat("\nPlease write 'delete' in the Input Box to confirm, then press this button again.\n\n"), Color.ORANGE, Color.DARK_GRAY);
-				
-				if (tbInputPath.getText().equals("delete")) {
+			final Path path = Paths.get(strOutputPath);
+			if (Files.exists(path))
+			{
+				String dir = System.getProperty("user.dir");
+				if (getConfirm() <= 3) {
+					setConfirm(getConfirm()+1);
+				}
+				if (strOutputPath.contains(dir) && !strOutputPath.equals(dir)) {
 					try {
-						if (Files.exists(Paths.get(strOutputPath)))
-						{
+						cleanupStart = true;
+						this.appendToPane(tpScrollPane, "⚠ You're about to remove "+Metadata.countImageFiles(strOutputPath)+" files from: ".concat(strOutputPath).concat("\nPlease write 'delete' in the Input Box to confirm, then press this button three more times. Confirm: "+getConfirm()+"/"+"3\n\n"), Color.ORANGE, Color.DARK_GRAY);
+						if (tbInputPath.getText().equals("delete") && getConfirm() > 3) {
 							tpScrollPane.setText("");
 							measurementMap.clear();
+							setConfirm(0);
 							File directory = new File(strOutputPath);
 							this.appendToPane(tpScrollPane, "⚠ Deleted: "+Metadata.countImageFiles(strOutputPath)+" files.", Color.ORANGE, Color.DARK_GRAY);
 							FileUtils.cleanDirectory(directory);
 						}
-					} catch (IOException e) {
-						e.printStackTrace();
+					} catch (IOException io) {
+						io.printStackTrace();
 					}
 				}
+				else {
+					this.appendToPane(tpScrollPane, "⚠ Access denied. Make sure the target path is a subdirectory of the path the runnable was launched in.", Color.ORANGE, Color.DARK_GRAY);
+				}
 			}
-			
+			else {
+				this.appendToPane(tpScrollPane, "⚠ Directory doesn't exist.", Color.ORANGE, Color.DARK_GRAY);
+			}
+		}else if (cleanupStart){
+			this.appendToPane(tpScrollPane, "⚠ Cleanup cancelled.", Color.ORANGE, Color.DARK_GRAY);
+			setConfirm(0);
+			cleanupStart = false;
 		}
 		
 		if (source == tbInputPath) {
@@ -378,8 +410,12 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 		this.appendToPane(tpScrollPane, msg, Color.ORANGE, Color.BLACK);
 	}
 	public void notifyError(String imagePath) {
-		String msg = "# Error invalid file: ".concat(imagePath).concat("\n");
+		String msg = "# Error - Not an Image: ".concat(imagePath).concat("\n");
 		this.appendToPane(tpScrollPane, msg, Color.RED, Color.BLACK);
+	}
+	public void notifyNoMetadata(String imagePath) {
+		String msg = "% File has no EXIF metadata, skipping: ".concat(imagePath).concat("\n");
+		this.appendToPane(tpScrollPane, msg, Color.ORANGE, Color.BLACK);
 	}
 	public void notifyCopiedFiles(Integer copiedFiles) throws IOException {
 		finishTime = System.currentTimeMillis();
@@ -434,6 +470,12 @@ public class GUI extends JFrame implements ActionListener, WindowListener {
 	public void windowDeactivated(WindowEvent e) {
 		// TODO Auto-generated method stub
 		
+	}
+	public Integer getConfirm() {
+		return confirm;
+	}
+	public void setConfirm(Integer confirm) {
+		this.confirm = confirm;
 	}
 }
 

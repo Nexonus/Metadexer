@@ -192,6 +192,8 @@ public class Metadata {
 					System.out.println(previousOutputFile + " " + imageIndex + localOutputFile);
 			}
 		}
+	}else {
+		gui.notifyNoMetadata(path.toString());
 	}
 }
 
